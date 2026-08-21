@@ -56,6 +56,23 @@ def main():
     print(
         f"Saved {len(champion_index['data'])} champions"
     )
+    champions_dir = DATA_DIR / version / "champions"
+
+    for champion_id in champion_index["data"]:
+        champion_url = (
+            f"{DDRAGON_BASE}/cdn/{version}/data/en_US/"
+            f"champion/{champion_id}.json"
+        )
+
+        champion_data = download_json(champion_url)
+
+        save_json(
+            champion_data,
+            champions_dir / f"{champion_id}.json"
+        )
+
+        print(f"Saved champion details: {champion_id}")
+
 
 
 if __name__ == "__main__":
