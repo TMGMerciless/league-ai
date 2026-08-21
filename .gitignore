@@ -1,1 +1,4 @@
 .venv/
+
+# Generated data
+data/raw/
