@@ -2,6 +2,7 @@
 
 # Generated data
 data/raw/
+data/normalized/
 
 # Python generated files
 __pycache__/
