@@ -62,6 +62,12 @@ def test_champion_normalizes(champion_file):
     assert set(normalized["base_stats"].keys()) == {
         "hp",
         "hp_per_level",
+        "resource",
+        "resource_per_level",
+        "hp_regen",
+        "hp_regen_per_level",
+        "resource_regen",
+        "resource_regen_per_level",
         "armor",
         "armor_per_level",
         "magic_resist",
@@ -69,8 +75,13 @@ def test_champion_normalizes(champion_file):
         "attack_damage",
         "attack_damage_per_level",
         "attack_speed",
+        "attack_speed_per_level",
+        "attack_range",
         "move_speed",
+        "crit",
+        "crit_per_level",
     }
+
     assert set(normalized["passive"].keys()) == {
         "name",
         "description",

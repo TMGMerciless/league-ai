@@ -57,16 +57,35 @@ def normalize_champion(champion):
             "difficulty": champion["info"]["difficulty"],
         },
         "base_stats": {
-            "hp": champion["stats"]["hp"],
-            "hp_per_level": champion["stats"]["hpperlevel"],
-            "armor": champion["stats"]["armor"],
-            "armor_per_level": champion["stats"]["armorperlevel"],
-            "magic_resist": champion["stats"]["spellblock"],
-            "magic_resist_per_level": champion["stats"]["spellblockperlevel"],
-            "attack_damage": champion["stats"]["attackdamage"],
-            "attack_damage_per_level": champion["stats"]["attackdamageperlevel"],
-            "attack_speed": champion["stats"]["attackspeed"],
-            "move_speed": champion["stats"]["movespeed"],
+	    "hp": champion["stats"]["hp"],
+	    "hp_per_level": champion["stats"]["hpperlevel"],
+
+	    "resource": champion["stats"]["mp"],
+	    "resource_per_level": champion["stats"]["mpperlevel"],
+
+	    "hp_regen": champion["stats"]["hpregen"],
+	    "hp_regen_per_level": champion["stats"]["hpregenperlevel"],
+
+	    "resource_regen": champion["stats"]["mpregen"],
+	    "resource_regen_per_level": champion["stats"]["mpregenperlevel"],
+
+	    "armor": champion["stats"]["armor"],
+	    "armor_per_level": champion["stats"]["armorperlevel"],
+
+	    "magic_resist": champion["stats"]["spellblock"],
+	    "magic_resist_per_level": champion["stats"]["spellblockperlevel"],
+
+	    "attack_damage": champion["stats"]["attackdamage"],
+	    "attack_damage_per_level": champion["stats"]["attackdamageperlevel"],
+
+	    "attack_speed": champion["stats"]["attackspeed"],
+	    "attack_speed_per_level": champion["stats"]["attackspeedperlevel"],
+
+	    "attack_range": champion["stats"]["attackrange"],
+	    "move_speed": champion["stats"]["movespeed"],
+
+	    "crit": champion["stats"]["crit"],
+	    "crit_per_level": champion["stats"]["critperlevel"],
         },
         "passive": {
             "name": champion["passive"]["name"],
