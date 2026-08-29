@@ -1,3 +1,4 @@
+import pytest
 import json
 from pathlib import Path
 
@@ -19,25 +20,41 @@ def get_latest_version_path():
     )
 
 
-def test_all_champions_normalize():
+def get_champion_files():
     version_path = get_latest_version_path()
-    champion_files = sorted(
+
+    return sorted(
         (version_path / "champions").glob("*.json")
     )
 
-    assert len(champion_files) > 0
 
-    for champion_file in champion_files:
-        with champion_file.open("r", encoding="utf-8") as file:
-            raw_data = json.load(file)
+@pytest.mark.parametrize(
+    "champion_file",
+    get_champion_files(),
+    ids=lambda path: path.stem,
+)
+def test_champion_normalizes(champion_file):
+    with champion_file.open("r", encoding="utf-8") as file:
+        raw_data = json.load(file)
 
-        champion_id = champion_file.stem
-        champion = raw_data["data"][champion_id]
+    champion_id = champion_file.stem
+    champion = raw_data["data"][champion_id]
 
-        normalized = normalize_champion(champion)
+    normalized = normalize_champion(champion)
 
-        assert normalized["id"]
-        assert normalized["name"]
-        assert normalized["base_stats"]["hp"] > 0
-        assert normalized["passive"]["name"]
-        assert len(normalized["abilities"]) > 0
+    assert set(normalized.keys()) == {
+        "id",
+        "name",
+        "tags",
+        "resource_type",
+        "riot_metadata",
+        "base_stats",
+        "passive",
+        "abilities",
+    }
+
+    assert normalized["id"]
+    assert normalized["name"]
+    assert normalized["base_stats"]["hp"] > 0
+    assert normalized["passive"]["name"]
+    assert len(normalized["abilities"]) > 0
