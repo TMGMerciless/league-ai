@@ -28,11 +28,13 @@ def get_champion_files():
     )
 
 
+@pytest.mark.integration
 @pytest.mark.parametrize(
     "champion_file",
     get_champion_files(),
     ids=lambda path: path.stem,
 )
+
 def test_champion_normalizes(champion_file):
     with champion_file.open("r", encoding="utf-8") as file:
         raw_data = json.load(file)
