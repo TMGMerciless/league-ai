@@ -52,6 +52,42 @@ def test_champion_normalizes(champion_file):
         "passive",
         "abilities",
     }
+    assert set(normalized["riot_metadata"].keys()) == {
+        "attack",
+        "defense",
+        "magic",
+        "difficulty",
+    }
+
+    assert set(normalized["base_stats"].keys()) == {
+        "hp",
+        "hp_per_level",
+        "armor",
+        "armor_per_level",
+        "magic_resist",
+        "magic_resist_per_level",
+        "attack_damage",
+        "attack_damage_per_level",
+        "attack_speed",
+        "move_speed",
+    }
+    assert set(normalized["passive"].keys()) == {
+        "name",
+        "description",
+    }
+
+    for ability in normalized["abilities"]:
+        assert set(ability.keys()) == {
+            "spell_id",
+            "name",
+            "description",
+            "tooltip",
+            "max_rank",
+            "cooldowns",
+            "costs",
+            "cost_type",
+            "ranges",
+        }
 
     assert normalized["id"]
     assert normalized["name"]
