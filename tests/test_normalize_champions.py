@@ -47,9 +47,15 @@ def test_champion_normalizes(champion_file):
     champion_id = champion_file.stem
     champion = raw_data["data"][champion_id]
 
-    normalized = normalize_champion(champion)
+    normalized = normalize_champion(
+        champion,
+        champion_file.parents[1].name,
+    )
+
+    assert normalized["patch_version"] == champion_file.parents[1].name
 
     assert set(normalized.keys()) == {
+        "patch_version",
         "id",
         "name",
         "tags",
@@ -96,6 +102,7 @@ def test_champion_normalizes(champion_file):
 
     for ability in normalized["abilities"]:
         assert set(ability.keys()) == {
+            "slot",
             "spell_id",
             "name",
             "description",

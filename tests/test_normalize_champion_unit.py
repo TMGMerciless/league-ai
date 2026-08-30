@@ -58,8 +58,9 @@ def sample_champion():
     }
 
 def test_normalize_champion(sample_champion):
-    normalized = normalize_champion(sample_champion)
+    normalized = normalize_champion(sample_champion, "16.16.1")
 
+    assert normalized["patch_version"] == "16.16.1"
     assert normalized["id"] == "TestChampion"
     assert normalized["name"] == "Test Champion"
     assert normalized["resource_type"] == "Mana"

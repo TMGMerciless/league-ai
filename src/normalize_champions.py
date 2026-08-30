@@ -29,11 +29,14 @@ def get_latest_local_version():
     return max(versions, key=lambda path: path.stat().st_mtime)
 
 
-def normalize_champion(champion):
+def normalize_champion(champion, patch_version):
     normalized_abilities = []
 
-    for spell in champion["spells"]:
+    ability_slots = ["Q", "W", "E", "R"]
+
+    for slot, spell in zip(ability_slots, champion["spells"]):
         normalized_abilities.append({
+            "slot":slot,
             "spell_id": spell["id"],
             "name": spell["name"],
             "description": spell["description"],
@@ -46,6 +49,7 @@ def normalize_champion(champion):
         })
 
     normalized_champion = {
+        "patch_version": patch_version,
         "id": champion["id"],
         "name": champion["name"],
         "tags": champion["tags"],
@@ -109,7 +113,9 @@ def main():
         champion_id = champion_file.stem
         champion = raw_data["data"][champion_id]
 
-        normalized_champion = normalize_champion(champion)
+        normalized_champion = normalize_champion(champion,
+            version_path.name,
+        )
 
         output_file = (
             OUTPUT_DIR
