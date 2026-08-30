@@ -7,6 +7,11 @@ from src.normalize_champions import normalize_champion
 
 RAW_DATA_DIR = Path("data/raw")
 
+if not RAW_DATA_DIR.exists():
+    pytest.skip(
+        "Riot Data Dragon data not available",
+        allow_module_level=True,
+    )
 
 def get_latest_version_path():
     version_dirs = [
