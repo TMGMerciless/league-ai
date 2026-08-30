@@ -36,11 +36,34 @@ def save_json(data, path):
     with path.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
+def version_is_complete(version):
+    version_dir = DATA_DIR / version
+    champion_index_path = version_dir / "champion.json"
+    champions_dir = version_dir / "champions"
 
+    if not champion_index_path.exists():
+        return False
+
+    if not champions_dir.exists():
+        return False
+
+    with champion_index_path.open("r", encoding="utf-8") as f:
+        champion_index = json.load(f)
+
+    champion_ids = champion_index["data"].keys()
+
+    return all(
+        (champions_dir / f"{champion_id}.json").exists()
+        for champion_id in champion_ids
+    )
 def main():
     version = get_latest_version()
 
     print(f"Detected Data Dragon version: {version}")
+
+    if version_is_complete(version):
+        print(f"Data Dragon version {version} is already complete locally.")
+        return
 
     champion_index_url = (
         f"{DDRAGON_BASE}/cdn/{version}/data/en_US/champion.json"

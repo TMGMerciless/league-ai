@@ -26,8 +26,12 @@ def get_latest_local_version():
             "No Data Dragon versions found in data/raw/"
         )
 
-    return max(versions, key=lambda path: path.stat().st_mtime)
-
+    return max(
+        versions,
+        key=lambda path: tuple(
+            int(part) for part in path.name.split(".")
+        ),
+    )
 
 def normalize_champion(champion, patch_version):
     normalized_abilities = []

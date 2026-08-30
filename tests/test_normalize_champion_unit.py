@@ -1,6 +1,10 @@
+import os
 import pytest
 
-from src.normalize_champions import normalize_champion
+from src.normalize_champions import (
+    get_latest_local_version,
+    normalize_champion,
+)
 
 
 @pytest.fixture
@@ -74,3 +78,22 @@ def test_normalize_champion(sample_champion):
     assert len(normalized["abilities"]) == 1
     assert normalized["abilities"][0]["spell_id"] == "TestQ"
     assert normalized["abilities"][0]["cooldowns"] == [10, 9, 8, 7, 6]
+
+def test_get_latest_local_version_uses_patch_number(tmp_path, monkeypatch):
+    older = tmp_path / "16.16.1"
+    newer = tmp_path / "16.17.1"
+
+    older.mkdir()
+    newer.mkdir()
+
+    os.utime(newer, (1000, 1000))
+    os.utime(older, (2000, 2000))
+
+    monkeypatch.setattr(
+        "src.normalize_champions.RAW_DATA_DIR",
+        tmp_path,
+    )
+
+    latest = get_latest_local_version()
+
+    assert latest.name == "16.17.1"
