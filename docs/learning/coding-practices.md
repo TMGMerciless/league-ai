@@ -765,3 +765,157 @@ The goal is not merely to produce working code.
 
 The goal is to understand why it works, know how to verify that it works, and be able to reproduce the result.
 
+## Generalize After Proving One Case
+
+When working with unfamiliar data, first solve a controlled example before attempting to process the entire dataset.
+
+Pattern:
+
+1. Inspect one example.
+2. Understand its structure.
+3. Build the transformation.
+4. Verify the output manually.
+5. Refactor the transformation into a reusable function.
+6. Apply the function to the complete dataset.
+7. Add automated tests.
+
+For the champion pipeline, Aatrox was used to understand the Data Dragon structure before `normalize_champion()` was generalized to all champion files.
+
+The example should help discover the solution, but example-specific assumptions should not remain in production logic unless they are actually required.
+
+## Data-Driven Discovery Over Hard-Coded Lists
+
+Prefer discovering entities from authoritative source data rather than maintaining duplicate lists manually.
+
+Instead of maintaining a list of champion names, the normalization pipeline discovers available JSON files and derives champion IDs from their filenames.
+
+Benefits include:
+
+- Less duplicated information
+- Fewer manual updates
+- Reduced risk of forgotten entries
+- Easier adaptation when upstream data adds new entities
+
+Dynamic discovery does not guarantee future compatibility. Automated tests are still necessary because newly introduced data may violate existing schema assumptions.
+
+## Automated Tests as Contracts
+
+Automated tests should verify assumptions that downstream code depends on.
+
+A test should do more than prove that a function does not crash.
+
+For normalized champion data, tests verify expected:
+
+- Top-level fields
+- Metadata fields
+- Base-stat fields
+- Passive fields
+- Ability fields
+- Basic value validity
+
+This creates an executable contract between the normalization layer and future components.
+
+If the schema changes accidentally, tests should fail before downstream systems silently consume malformed data.
+
+## Parametrized Testing
+
+When the same behavior must be validated across many inputs, parametrized tests can provide better failure isolation than one large loop inside a single test.
+
+A loop inside one test may produce:
+
+`1 failed`
+
+A parametrized test can identify the specific input:
+
+`test_champion_normalizes[ChampionName] FAILED`
+
+This makes failures easier to diagnose and allows the test runner to report each dataset entry independently.
+
+## Direct and Transitive Dependencies
+
+A project dependency file should primarily describe packages intentionally required by the project.
+
+Some packages install additional dependencies automatically.
+
+For example:
+
+PyTorch  
+→ CUDA-related packages  
+→ supporting Python packages
+
+Those transitive dependencies generally do not need to be manually maintained as direct project requirements.
+
+Avoid blindly treating the complete output of `pip freeze` as the project's intentionally designed dependency list.
+
+## Continuous Integration
+
+Continuous Integration (CI) automatically validates committed code in a clean environment.
+
+For this project, GitHub Actions is used to run self-contained unit tests after pushes and pull requests.
+
+CI helps answer a different question than local testing:
+
+- Local testing asks: "Does this work in my development environment?"
+- CI asks: "Can the repository reproduce this behavior on a clean machine?"
+
+Both are important.
+
+### Keep CI Independent of Local Machine State
+
+A development machine gradually accumulates:
+
+- downloaded data
+- installed packages
+- environment configuration
+- cached files
+- generated artifacts
+- tools installed manually
+
+This can cause code to work locally while failing somewhere else.
+
+A CI runner starts from a much cleaner environment and therefore helps expose accidental dependencies on local machine state.
+
+The first League AI CI run demonstrated this when the integration test attempted to access the locally downloaded `data/raw/` directory.
+
+The code worked locally because that directory existed.
+
+The CI environment exposed that the test suite still assumed the directory existed during test collection.
+
+### Unit and Integration Tests Serve Different Purposes
+
+Unit tests should generally:
+
+- test a small piece of behavior
+- use controlled input
+- avoid external datasets or services
+- execute quickly
+- behave reproducibly
+- run easily in CI
+
+Integration tests can validate interactions with:
+
+- downloaded datasets
+- APIs
+- files
+- databases
+- multiple project components
+
+The League AI normalization tests use both approaches.
+
+The synthetic champion test validates the normalization function independently.
+
+The Riot champion tests validate the same logic against the locally downloaded real-world dataset.
+
+### Avoid External Resource Access During Test Collection
+
+pytest first discovers and collects tests before executing them.
+
+This means code executed at module import or during parametrization may run before marker-based test filtering prevents a test from executing.
+
+For example:
+
+```python
+@pytest.mark.parametrize(
+    "champion_file",
+    get_champion_files(),
+)

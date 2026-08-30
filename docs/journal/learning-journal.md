@@ -404,4 +404,254 @@ machine learning
 
 The next major engineering challenge is converting Riot's raw champion data into a normalized League AI schema that can eventually support deterministic logic and machine-learning features.
 
+## Champion Normalization and Automated Testing
 
+### Normalization Pipeline
+
+Built `src/normalize_champions.py` to transform Riot Data Dragon champion data into a project-controlled schema.
+
+Development started with Aatrox as a single controlled example before generalizing the implementation.
+
+The normalization layer now separates Riot's representation from the League AI representation.
+
+Examples of field translation include:
+
+- `spellblock` → `magic_resist`
+- `spellblockperlevel` → `magic_resist_per_level`
+- `attackdamage` → `attack_damage`
+- `attackdamageperlevel` → `attack_damage_per_level`
+- `partype` → `resource_type`
+
+The normalized schema currently preserves:
+
+- Champion ID and name
+- Champion tags
+- Resource type
+- Riot attack, defense, magic, and difficulty metadata
+- Selected base statistics
+- Selected per-level growth statistics
+- Passive name and description
+- Ability IDs
+- Ability names
+- Descriptions and semantic tooltips
+- Maximum ability ranks
+- Cooldowns
+- Costs and cost types
+- Ranges
+
+Presentation-only information such as sprite coordinates is intentionally excluded.
+
+### Generalizing Beyond Aatrox
+
+The original implementation used Aatrox to understand the Data Dragon structure.
+
+After validating the approach, the normalization logic was moved into:
+
+`normalize_champion(champion)`
+
+The function does not contain champion-specific logic.
+
+Champion files are discovered dynamically using:
+
+`glob("*.json")`
+
+The champion ID is derived from each filename using:
+
+`Path.stem`
+
+This removed the need to maintain a hard-coded champion list.
+
+The pipeline successfully normalized all 173 champions available in Data Dragon patch 16.16.1.
+
+This design should automatically discover newly added champions as long as their Data Dragon structure remains compatible with the assumptions made by the normalizer.
+
+### Automated Testing
+
+Installed pytest and created:
+
+`tests/test_normalize_champions.py`
+
+The initial test processed all champions inside one test function.
+
+This worked, but pytest reported only one collected test because the champion loop existed inside the test.
+
+The test was then refactored using pytest parametrization.
+
+Each champion is now treated as an independent test case.
+
+Current result:
+
+`173 passed`
+
+This improves debugging because a future failure can identify the specific champion that violates an assumption.
+
+### Schema Validation
+
+Automated tests now verify both successful normalization and the structure of the resulting schema.
+
+Tests validate:
+
+- Required top-level champion fields
+- Riot metadata fields
+- Base-stat fields
+- Passive fields
+- Ability fields
+- Non-empty champion IDs and names
+- Positive base HP
+- Presence of passive names
+- Presence of abilities
+
+This changes validation from manual inspection of generated JSON into an automated contract.
+
+Instead of visually checking 173 output files after every change, pytest verifies the assumptions automatically.
+
+### Reproducible Dependencies
+
+Updated `requirements.txt` with intentionally selected project dependencies:
+
+- NumPy 2.5.2
+- PyTorch 2.13.0
+- pytest 9.1.1
+
+Learned the difference between direct project dependencies and transitive dependencies.
+
+For example, PyTorch installs additional CUDA and Python packages that do not need to be manually listed as direct project requirements.
+
+Generated and environment-specific content remains excluded from Git:
+
+- `.venv/`
+- `__pycache__/`
+- `data/raw/`
+- `data/normalized/`
+
+The repository stores the code necessary to reproduce generated data rather than storing the generated datasets themselves.
+
+### Current Architecture
+
+The project currently follows this general flow:
+
+Data Dragon  
+→ version discovery  
+→ raw data ingestion  
+→ versioned raw JSON  
+→ normalization  
+→ project-controlled champion schema  
+→ automated schema validation
+
+The project has not yet moved into meaningful League ML model development.
+
+The current work is intentionally establishing a reliable and testable data-engineering foundation before feature engineering and model development.
+
+### Important Correction to Earlier Understanding
+
+The project is version-aware and can discover Data Dragon versions, but full conditional update logic has not yet been implemented.
+
+The desired future behavior is:
+
+local version  
+→ compare against current Data Dragon version  
+→ download/update only when necessary
+
+This should not be considered complete until explicitly implemented and tested.
+
+## Continuous Integration with GitHub Actions
+
+### Goal
+
+The project reached the point where automated tests should run somewhere other than the development laptop.
+
+The purpose of Continuous Integration (CI) is to verify that committed code can work in a clean environment rather than only working because of files, packages, or configuration already present on the development system.
+
+### Project Python Version
+
+Created:
+
+`.python-version`
+
+with:
+
+`3.14.4`
+
+The GitHub Actions workflow reads this file instead of maintaining a separate hard-coded Python version.
+
+This establishes the Python version as part of the project's configuration.
+
+A system Python upgrade should not silently change the project's expected Python version. Python upgrades should instead be intentional project changes.
+
+### GitHub Actions Workflow
+
+Created:
+
+`.github/workflows/tests.yml`
+
+The workflow currently:
+
+1. Runs on pushes and pull requests.
+2. Creates a fresh Ubuntu runner.
+3. Checks out the repository.
+4. Reads the Python version from `.python-version`.
+5. Configures Python.
+6. Installs pytest.
+7. Runs the self-contained unit tests while excluding integration tests.
+
+The test command is:
+
+`python -m pytest -m "not integration" -v`
+
+This allows the repository to test normalization logic without requiring the locally downloaded Riot Data Dragon dataset.
+
+### Unit Tests vs. Integration Tests
+
+The real Riot champion tests were marked with:
+
+`@pytest.mark.integration`
+
+The custom marker was registered in:
+
+`pytest.ini`
+
+This creates an important distinction:
+
+- Unit tests use controlled, self-contained input and can run on a clean machine.
+- Integration tests validate the normalization pipeline against locally downloaded Riot Data Dragon data.
+
+This distinction allows fast and reproducible CI testing while retaining broader validation against the real dataset during local development.
+
+### First CI Failure
+
+The first GitHub Actions run failed.
+
+The failure was:
+
+`FileNotFoundError: data/raw`
+
+Even though the workflow used:
+
+`-m "not integration"`
+
+pytest still imported and collected `tests/test_normalize_champions.py`.
+
+During collection, the parametrization called:
+
+`get_champion_files()`
+
+which attempted to inspect `data/raw/`.
+
+The GitHub runner did not have this directory because raw Riot data is intentionally excluded from Git.
+
+This demonstrated an important testing concept:
+
+**Test collection happens before the selected tests are executed.**
+
+Code that accesses external resources during module import or test collection can therefore fail even when those tests are later supposed to be excluded by a pytest marker.
+
+### Fix
+
+The integration-test module now checks whether the Riot dataset exists:
+
+```python
+if not RAW_DATA_DIR.exists():
+    pytest.skip(
+        "Riot Data Dragon data not available",
+        allow_module_level=True,
+    )
